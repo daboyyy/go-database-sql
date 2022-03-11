@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -60,4 +61,36 @@ func GetCover(id int) (*Cover, error) {
 	}
 
 	return &cover, nil
+}
+
+// begin tran process example
+func AddCover(cover Cover) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// MySQL
+	query := "insert into cover (id, name) values (?, ?)" // no auto increment have to add id
+	result, err := tx.Exec(query, cover.Id, cover.Name)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if affected <= 0 {
+		return errors.New("cannot insert")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
